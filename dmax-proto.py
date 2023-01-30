@@ -154,6 +154,9 @@ print('variables:')
 print('    objective:', model.OBJ())
 # print('    x3:', Model.x3())
 
+for v in model.component_data_objects(ctype=pyo.Var):
+    print(f"{v.name=}, {v.lb=}, {v.value=}, {v.ub=}")
+
 
 
 print('AB:', model.AB0(), model.AB1(), model.AB2(), model.AB3(), model.AB4(), model.AB5(), model.AB6(), model.AB7())
