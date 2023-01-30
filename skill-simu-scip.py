@@ -20,6 +20,10 @@ skill_list = [
     'CriticalBoost',
 ]
 
+# ダメージ計算用スキル変数
+#   mdl.x['AttackBoost', 3] = 1 ならば AttackBoost Lv.3 が発動
+#   mdl.x['AttackBoost', 1] = 0 ならば AttackBoost Lv.1 が発動しない
+#   sum(mdl.x['AttackBoost', i] for i in [0, ..., 7]) == 1
 mdl.x = Var(skill_list, mdl.I, within=Boolean)
 
 
@@ -48,8 +52,8 @@ equip_infos = [
     'CriticalBoost',
    ]
 
-eqinfo_matrix = {}
 
+# 防具データに存在する属性のみ埋める (存在しない属性は mdl.p = Param(..., default= ) で指定される)
 eq_dict = {
     "ルドロス": {
         'head': 1,
@@ -72,6 +76,8 @@ eq_dict = {
 
 }
 
+# パラメータ mdl.p の initialize に渡す用に変形
+eqinfo_matrix = {}
 for eq in eq_dict:
     for at in eq_dict[eq]:
         eqinfo_matrix[eq, at] = eq_dict[eq][at]
@@ -86,6 +92,7 @@ for eqname in equip_names:
 # print(mdl.p[1,1])
 
 # number of equipments used
+# ある装備を使うか否か
 mdl.q = Var(equip_names, within=Boolean) 
 
 print(mdl.p['ルドロス','head'])
