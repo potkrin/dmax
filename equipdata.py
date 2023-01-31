@@ -1,4 +1,5 @@
 # KO術 や 回避距離UP などの英字を全角に変換
+# 蒼星シリーズ を追加 (kiranico に存在しないデータ)
 armors = [
     {"rare":1,"type":"head","name":"カムラノ装【頭巾】","deffence":1,"fire":"1","water":"0","ice":"0","thunder":"0","dragon":"0","slots":[],"skills":{"精霊の加護":1}},
     {"rare":1,"type":"torso","name":"カムラノ装【上衣】","deffence":1,"fire":"1","water":"0","ice":"0","thunder":"0","dragon":"0","slots":[],"skills":{"翔蟲使い":1}},
