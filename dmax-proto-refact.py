@@ -1,3 +1,6 @@
+# scip の文法勉強用 
+# 制約条件等をリファクタリング
+
 from pyomo.environ import *
 # import pyomo.environ as pyo
 from pyomo.opt import SolverFactory

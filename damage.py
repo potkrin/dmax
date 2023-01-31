@@ -1,3 +1,7 @@
+# ダメージ計算式が間違っているので注意
+# - 伏魔青の倍率が違う 
+# - 会心の期待値計算が違う
+
 import pyomo.environ as pyo
 from pyomo.opt import SolverFactory
 

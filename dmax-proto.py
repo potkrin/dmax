@@ -1,3 +1,8 @@
+# dmax の試作品
+# 擬似的にスキルシミュによる制約を再現したもの
+# ダメージ計算式が間違ってる (正しい式は damage_expression.py または dmax_skill_sim_scip.py を参照)
+# 次に作成したのが dmax-proto-refact.py
+
 # from pyomo.environ import *
 import pyomo.environ as pyo
 from pyomo.opt import SolverFactory
