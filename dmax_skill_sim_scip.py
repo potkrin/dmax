@@ -97,7 +97,8 @@ damage_skill_set = {
 #   sum(mdl.x['AttackBoost', i] for i in [0, ..., 7]) == 1
 mdl.x = Var(damage_skill_set, mdl.I, within=Boolean)
 
-# 会心率の合計 mdl.af <= 100 AND mdl.af <= 5*mdl.x[会心スキル1,1] + 10*mdl.x[会心スキル1,2]
+# min(100, 会心率) を実現するために必要
+# 会心率の合計 mdl.af <= 100 AND mdl.af <= (武器会心+スキル会心の合計)
 mdl.af = Var(within=NonNegativeIntegers)
 
 
@@ -247,7 +248,8 @@ mdl.const_max_affinity_2 = Constraint(rule=const_max_affinity_2)
 # MUL2 = ADD * cp['溜め補正物理'] * (cp['モーション値']/100.0) *  (cp['肉質']/100.0) * cp['ビン補正']\
 #        * (1.0 + (AFFR) * (1.25 + 0.05*bp['超会心'][1] + 0.1*bp['超会心'][2] + 0.15*bp['超会心'][3] - 1.0))
 
-# この制約では 100 を大きく超えるパターンが網羅出来ない
+
+# この制約では 100 を大きく超えるパターンが網羅出来ない (なので mdl.af を利用する方法にしました)
 # # constraint 会心率 100以下
 # def const_max_affinity(mdl)
 #     # できれば レベルごと会心率などのデータも ベクトル変数で管理 (複数効果のものはどうするか?)
