@@ -9,6 +9,7 @@ from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
 import equipdata as data
+import sys
 
 
 print(data.armors[1])
@@ -157,7 +158,7 @@ mdl.p = Param(equip_names, attribute_set, default=0, initialize=eqinfo_matrix, w
 
 # number of equipments used
 # ある装備を使うか否か
-mdl.q = Var(equip_names, within=NonNegativeIntegers) 
+mdl.q = Var(equip_names, within=NonNegativeIntegers, initialize=0) 
 
 # required_skills = {
 #     'スタミナ急速回復': 3,
@@ -167,17 +168,39 @@ mdl.q = Var(equip_names, within=NonNegativeIntegers)
 # }
 
 required_skills = {
-    'スタミナ急速回復': 3,
-    '体術': 2,
-    '攻撃': 4,
-    '氷属性攻撃強化': 5,
-    '弱点特効': 3,
-    '超会心': 3,
-    '通常弾・連射矢強化': 3,
-    '弾導強化': 1,
-    '装填速度': 2,
-    '弓溜め段階解放': 1,
+    # 'スタミナ急速回復': 3, '体術': 2, '攻撃': 4, '氷属性攻撃強化': 5, '弱点特効': 3, '超会心': 3, '通常弾・連射矢強化': 3, '弾導強化': 1, '装填速度': 2, '弓溜め段階解放': 1,
+
+    # '弱点特効': 3,
+    # '超会心': 3,
+    # '通常弾・連射矢強化': 3,
+    # '弾導強化': 1,
+    # '装填速度': 2,
+    # '弓溜め段階解放': 1,
+    # '伏魔響命': 1,
+    # '奮闘': 3,
+    # '攻撃': 2,
+    # '見切り': 7,
+    # '氷属性攻撃強化': 5,
+
+    # '風纏': 3,
+
+    # '弓溜め段階解放':1, '奮闘':3, '狂化':1, '伏魔響命':2, '見切り':6, '逆恨み':3, '超会心':2, '弱点特効【属性】':1, '狂竜症【蝕】':1, '災禍転福':3, '弱点特効':3, '通常弾・連射矢強化':3, '氷属性攻撃強化':3
+    
+    # '弱点特効':3, '攻撃':7, '見切り':3, '超会心':3, '納刀術':3, '翔蟲使い':3, '鋼殻の恩恵':3, '風纏':1, '粉塵纏':1, '連撃':1, 'フルチャージ':1, '渾身':2, '風圧耐性':3
+
+    '弱点特効':3, '超会心':3, '翔蟲使い':3, '顕如盤石':3, '砲弾装填':2, '攻撃':4, '研磨術【鋭】':1, '弱点特効【属性】':1, 'チャージマスター':2, '会心撃【属性】':2, '逆恨み':2, '弾丸節約':2, '笛吹き名人':1
+
 }
+
+
+
+# スキル名が有効かチェック
+for skill in required_skills:
+    print('skill input check:', skill)
+    if not skill in skill_set:
+        print(skill, 'NOT FOUND Exit')
+        sys.exit(1)
+    
 
 required_skill_set = {key for key in required_skills}
 print(required_skill_set)
@@ -186,7 +209,7 @@ mdl.r = Param(skill_set, default=0, initialize=required_skills, within=Integers)
 
 # 各部位で使用できる装備の数は 1 以下
 def const_total_equipment_type(mdl, eqtype):
-    # print(sum(mdl.q[eqname]*mdl.p[eqname,eqtype] for eqname in equip_names))
+    # print(sum(mdl.q[eqname]*mdl.p[eqname,eqtype] for eqname in equip_names), '\n <= 1')
     return sum(mdl.q[eqname]*mdl.p[eqname,eqtype] for eqname in equip_names) <= 1
 
 mdl.const_total_equipment_type = Constraint(type_set, rule=const_total_equipment_type)
@@ -194,7 +217,7 @@ mdl.const_total_equipment_type = Constraint(type_set, rule=const_total_equipment
 # Lv別の 空きスロット数 >= 装飾品数
 def const_remain_slot_num(mdl, slotlevel):
     # print('\n slotlevel:', slotlevel)
-    # print(sum(mdl.q[eqname]*mdl.p[eqname,slotlevel] for eqname in equip_names))
+    # print(sum(mdl.q[eqname]*mdl.p[eqname,slotlevel] for eqname in equip_names), '\n>= 0')
     return sum(mdl.q[eqname]*mdl.p[eqname,slotlevel] for eqname in equip_names) >= 0
 
 mdl.const_remain_slot_num = Constraint(remain_slot_set, rule=const_remain_slot_num)
@@ -204,7 +227,7 @@ mdl.const_remain_slot_num = Constraint(remain_slot_set, rule=const_remain_slot_n
 
 # 指定された スキル と スキルポイント数 を満たす
 def const_skill_point(mdl, skill):
-    # print(sum(sum(mdl.q[eqname]*mdl.p[eqname,skill] for eqname in equip_names)))
+    print(sum(mdl.q[eqname]*mdl.p[eqname,skill] for eqname in equip_names), '\n >= \n', mdl.r[skill])
     return sum(mdl.q[eqname]*mdl.p[eqname,skill] for eqname in equip_names) >= mdl.r[skill]
 
 mdl.const_skill_point = Constraint(required_skill_set, rule=const_skill_point)
