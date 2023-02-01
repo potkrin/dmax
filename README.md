@@ -35,7 +35,12 @@ MHR:Sunbreak というゲームにおいて ｢ダメージを最大化する装
     - ダメージ計算式がずれているので要修正
 
 
+
+
+
 ### SCIP 環境構築 (wsl+Ubuntu20.04)
+この文章は memo リポジトリからコピーしてきたもの
+
 1. 公式ページの Download へ移動して version:8.03 OS:Linux を選択
 https://www.scipopt.org/download.php?fname=scipoptsuite-8.0.3.tgz
 
