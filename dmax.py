@@ -17,16 +17,180 @@ import sys
 
 import urllib.parse # スキルシミュに投げる用のURLの作成に利用
 
+import csv 
+import copy
+
+# 元データ に 傀異錬成防具 や 護石 データを追加したもの
+armor_all = copy.deepcopy(data.armors)
+armor_all[0]['name'] = 'name changed'
+
+
+with open('data_charms.csv') as f:
+    charms = csv.reader(f)
+    for charm in charms:
+        print()
+        for i in range(7):
+            print(charm[i], type(charm[i]))
+
+        temp_charm = {
+            "rare":0,
+            "type":"charm",
+            "name": "護石【" + charm[0] + "，" + charm[2] + "】", # なんでもいい (けど skillA skillB 3-1-1 形式のほうがいいかも?))
+            "deffence":0,
+            "fire":"0",
+            "water":"0",
+            "ice":"0",
+            "thunder":"0",
+            "dragon":"0",
+            "slots":[],
+            "skills":{}
+        }
+        for i in range(4,7):
+            if charm[i] != '0':
+                temp_charm["slots"].append(int(charm[i]))
+
+        for i in range(2):
+            if charm[2*i] != '':
+                temp_charm["skills"][charm[2*i]] = int(charm[2*i+1])
+
+        print("temp_charm:", temp_charm)
+        armor_all.append(temp_charm)
+
+with open('data_augments.csv') as f:
+    augments = csv.reader(f)
+    for augment in augments:
+        print()
+        print(augment)
+        
+        for base_armor in data.armors:
+            if augment[0] == base_armor['name']:
+                print("Base armor found: name = ", base_armor['name'])
+                temp_augment = {
+                    "rare":0,
+                    "type":base_armor['type'],
+                    # リバルカイザーホーン,0,0,0,0,0,0,1,0,0,巧撃,1,skill,lv,skill,lv,skill,lv,,
+                    # 0: name,
+                    # 1: deffence,
+                    # 2: fire,
+                    # 3: water,
+                    # 4: thunder,
+                    # 5: ice,
+                    # 6: dragon,
+                    # 7: slot1,
+                    # 8: slot2,
+                    # 9: slot3,
+                    # 10:skill1name,
+                    # 11: lv,
+                    # 12:skill2name,
+                    # 13: lv,
+                    # 14:skill3name,
+                    # 15: lv,
+                    # 16:skill4name,
+                    # 17: lv,
+                    # 18,
+                    # 19
+                    "name": "", # 下でつくる
+                    "deffence": base_armor['deffence'] + int(augment[1]),
+                    "fire": base_armor['fire'] + augment[2],          # fire などの値が string になっている
+                    "water": base_armor['water'] + augment[3],
+                    "ice": base_armor['ice'] + augment[4],
+                    "thunder": base_armor['thunder'] + augment[5],
+                    "draon": base_armor['dragon'] + augment[6],
+                    "slots":[],
+                    "skills":{}
+                }
+
+                # 名前作成 防具名(スキルA+N, ))
+                aug_name = augment[0] + '('
+                for i in range(4):
+                    skill_name = augment[10+2*i]
+                    if skill_name == '':
+                        continue
+
+                    diff_level = int(augment[10+2*i+1])
+
+                    if diff_level >= 0:
+                        aug_name += skill_name + '+' + str(diff_level)
+                    else:
+                        aug_name += skill_name + str(diff_level)
+
+               
+                slot_count = 0
+                for i in range(3):
+                    if augment[7+i] != '0':
+                        slot_count += int(augment[7+i])
+                aug_name += 'スロット' + str(slot_count) + ')'
+
+                temp_augment['name'] = aug_name
+
+                # スロット情報設定
+                for i in range(3):
+                    if len(base_armor['slots']) > i:
+                        base_level = base_armor['slots'][i]
+                    else:
+                        base_level = 0
+
+                    skill_level = base_level + int(augment[7+i])
+                    print('base_level=', base_level, 'skill_level=', skill_level)
+
+                    if skill_level > 0:
+                        temp_augment['slots'].append(skill_level)
+                
+                # スキル情報設定
+                for skill in base_armor['skills']:
+                    temp_augment['skills'][skill] = base_armor['skills'][skill]
+
+                for i in range(4):
+                    adding_skill = augment[10+2*i]
+                    if adding_skill != '':
+                        if adding_skill in base_armor['skills']:
+                            temp_augment['skills'][adding_skill] = base_armor['skills'][adding_skill] + int(augment[10+2*i+1])
+                        else:
+                            temp_augment['skills'][adding_skill] = int(augment[10+2*i+1])
+
+                print('base_augment = ', base_armor)
+                print('temp_augment = ', temp_augment)
+                armor_all.append(temp_augment)
+                break
+
+#             if base_armor['name'] == data.armors[len(data.armors)-1]['name']:
+#                 print("Base Armor not Found: name = ", augment[0])
+#                 print(augment[0] == '')
+
+
+        # temp_augment = {
+        #     "rare":0,
+        #     "type":"augment",
+        #     "name": "護石【" + augment[0] + "，" + augment[2] + "】", # なんでもいい (けど skillA skillB 3-1-1 形式のほうがいいかも?))
+        #     "deffence":0,
+        #     "fire":"0",
+        #     "water":"0",
+        #     "ice":"0",
+        #     "thunder":"0",
+        #     "dragon":"0",
+        #     "slots":[],
+        #     "skills":{augment[0]:int(augment[1]), augment[2]:int(augment[3]), }
+        # }
+        # for i in range(4,7):
+        #     if augment[i] != '0':
+        #         temp_augment["slots"].append(int(augment[i]))
+
+        # print("temp_augment:", temp_augment)
+        # data.armors.append(temp_augment)
+
+
+
+
 # ダメージ式用の定数
 cp = {
-    "武器倍率": 350.0,
-    "属性": [False, True, False, False, False, False, ], # 無属性, 火, 水, 氷, 雷, 龍
-    "武器属性値": 40.0,
+    "武器倍率": 340.0,
+    "属性": [False, False, False, True, False, False, ], # 無属性, 火, 水, 氷, 雷, 龍
+    "武器属性値": 30.0,
     "溜め補正物理": 1.35, #溜め4
     "溜め補正属性": 1.2, #溜め4
     "モーション値": 11.0, #連射Lv5
     "物理肉質": 55.0,
-    "属性肉質": 20.0,
+    "属性肉質": 30.0,
     "ビン補正": 1.35, #強撃ビン
     "武器会心率": 0.0,
     "ヒトダマドリ": 0.0,
@@ -54,12 +218,11 @@ cp = {
     # 射撃術
 }
 
-print(data.armors[1])
 
 # 存在するスキルの集合
 skill_set = set()
 remain_slot_set = {'Lv1RemainSlotNum', 'Lv2RemainSlotNum', 'Lv3RemainSlotNum', 'Lv4RemainSlotNum'}
-type_set = {'head', 'torso', 'arms', 'waist', 'legs', } # あとで charm を追加する
+type_set = {'head', 'torso', 'arms', 'waist', 'legs', 'charm'} # あとで charm を追加する
 
 # 装備の全属性の集合
 attribute_set = set()
@@ -68,7 +231,7 @@ attribute_set = attribute_set | remain_slot_set | type_set | {'deffence'}
 # 装備の名前集合
 equip_names = set()
 
-for armor in data.armors:
+for armor in armor_all:
     equip_names.add(armor['name'])
     for skill in armor['skills']:
         attribute_set.add(skill)
@@ -142,7 +305,7 @@ damage_skill_set = {
 
 # 装備(防具･装飾品･護石) のデータを用意する
 eqinfo_matrix = {}
-for armor in data.armors:
+for armor in armor_all:
     eqinfo_matrix[armor['name'], armor['type']] = 1
     # skills
     for skill in armor['skills']:
@@ -177,14 +340,14 @@ mdl.q = Var(equip_names, within=NonNegativeIntegers, initialize=0)
 required_skills = {
     # 'スタミナ急速回復': 3, '体術': 2, '攻撃': 4, '氷属性攻撃強化': 5, '弱点特効': 3, '超会心': 3, '通常弾・連射矢強化': 3, '弾導強化': 1, '装填速度': 2, '弓溜め段階解放': 1,
 
-    '通常弾・連射矢強化': 3,
-    '弾導強化': 1,
+    # '弾導強化': 1,
     '装填速度': 2,
     '弓溜め段階解放': 1,
+    '奮闘': 3,
 
     # '弱点特効': 3,
     # '超会心': 3,
-    # '伏魔響命': 1,
+    # '伏魔響命': 3,
     # '奮闘': 3,
     # '攻撃': 2,
     # '見切り': 7,
@@ -200,6 +363,7 @@ required_skills = {
 
 }
 
+
 # 矢タイプ定数から 弾強化スキルを追加
 if cp['弾強化'][3]:
     required_skills[cp['矢タイプ']] = 3
@@ -211,6 +375,51 @@ else:
     required_skills[cp['矢タイプ']] = 0
 
 print('required_skills = \n', required_skills)
+
+
+# active rate ダメージ要素の発動割合
+ar = {
+    "攻勢": 0,
+    "フルチャージ": 0,
+    "逆襲": 0,
+    "死中に活": 0,
+    "龍気活性": 0,
+    "渾身": 1,
+    "攻撃": 1,
+    "見切り": 1,
+    "伏魔響命": 1,
+    "業鎧【修羅】": 1,
+    "火属性攻撃強化": 1,
+    "水属性攻撃強化": 1,
+    "氷属性攻撃強化": 1,
+    "雷属性攻撃強化": 1,
+    "龍属性攻撃強化": 1,
+    "挑戦者": 0.7,
+    "逆恨み": 1,
+    "奮闘": 1,
+    # 狂竜症サンプル
+    # - https://www.youtube.com/watch?v=O_BuFYMqsL8&t=66s
+    # - 0:26 - 0:42 - 1:42 - 2:01 - 3:01 - 3:20
+    # - {16, 18, 19}秒 : 60秒
+    # - (感染から克服にかかる時間:15~20秒) : (克服中時間:60, 60, 90秒)
+    "狂竜症【蝕】": 0.25, # (感染から克服にかかる時間:15~20秒) : (克服中時間:60, 60, 90秒) の割合
+    "災禍転福": 0.38, # 狂竜症で発動する場合は 30秒 : (感染-克服-感染 の1サイクル)
+    "連撃": 1,
+    "巧撃": 1,
+    "闇討ち": 1,
+    "弱点特効": 1,
+    "超会心": 1,
+    "弱点特効【属性】": 1,
+    "会心撃【属性】": 1,
+    "チャージマスター": 1,
+    "通常弾・連射矢強化": 1,
+    "散弾・拡散矢強化": 1,
+    "貫通弾・貫通矢強化": 1,
+    "鋼殻の恩恵": 1,
+    "炎鱗の恩恵": 1,
+}
+
+print('active rate = ', ar)
 
 
 # スキル名が有効かチェック (入力データの検証)
@@ -314,13 +523,13 @@ def const_max_affinity_2(mdl):
                 (cp['武器会心率'] + 15*cp['鋼龍の魂'] \
                 + 5*mdl.x['見切り',1] + 10*mdl.x['見切り',2] + 15*mdl.x['見切り',3] \
                 + 20*mdl.x['見切り',4] + 25*mdl.x['見切り',5] + 30*mdl.x['見切り',6] + 40*mdl.x['見切り',7] \
-                + 3*mdl.x['挑戦者',1] + 5*mdl.x['挑戦者',2] + 7*mdl.x['挑戦者',3] + 10*mdl.x['挑戦者',4] + 15*mdl.x['挑戦者',5] \
+                + ar['挑戦者']*(3*mdl.x['挑戦者',1] + 5*mdl.x['挑戦者',2] + 7*mdl.x['挑戦者',3] + 10*mdl.x['挑戦者',4] + 15*mdl.x['挑戦者',5]) \
                 + 10*mdl.x['奮闘',1] + 15*mdl.x['奮闘',2] + 20*mdl.x['奮闘',3] \
                 + 15*cp['狂竜症【蝕】'][2] \
                 + cp['狂竜症【蝕】'][1] * (20*mdl.x['狂竜症【蝕】',1] + 25*mdl.x['狂竜症【蝕】',2] + 25*mdl.x['狂竜症【蝕】',3]) \
-                + 10*mdl.x['攻勢',2] + 20*mdl.x['攻勢',3] \
+                + ar['攻勢']*(10*mdl.x['攻勢',2] + 20*mdl.x['攻勢',3]) \
                 + 15*mdl.x['弱点特効',1] + 30*mdl.x['弱点特効',2] + 50*mdl.x['弱点特効',3] \
-                + 10*mdl.x['渾身',1] + 20*mdl.x['渾身',2] + 30*mdl.x['渾身',3] \
+                + ar['渾身']*(10*mdl.x['渾身',1] + 20*mdl.x['渾身',2] + 30*mdl.x['渾身',3]) \
                 + 50*cp['アミキリアカネ'] \
                 + 30*cp['強化咆哮'])
 
@@ -404,13 +613,13 @@ def objective(mdl):
                 + 4*mdl.x['挑戦者',1] + 8*mdl.x['挑戦者',2] + 12*mdl.x['挑戦者',3] + 16*mdl.x['挑戦者',4] + 20*mdl.x['挑戦者',5] \
                 + 5*mdl.x['逆恨み',1] + 10*mdl.x['逆恨み',2] + 15*mdl.x['逆恨み',3] + 20*mdl.x['逆恨み',4] + 25*mdl.x['逆恨み',5] \
                 + cp['狂竜症【蝕】'][0] *(10*mdl.x['狂竜症【蝕】',1] + 15*mdl.x['狂竜症【蝕】',2] + 20*mdl.x['狂竜症【蝕】',3])\
-                + 12*mdl.x['災禍転福',1] + 15*mdl.x['災禍転福',2] + 18*mdl.x['災禍転福',3] \
+                + ar['災禍転福']*(12*mdl.x['災禍転福',1] + 15*mdl.x['災禍転福',2] + 18*mdl.x['災禍転福',3]) \
                 + 8*mdl.x['連撃',1] + 9*mdl.x['連撃',2] + 10*mdl.x['連撃',3] \
-                + 10*mdl.x['攻勢',1] + 10*mdl.x['攻勢',2] + 15*mdl.x['攻勢',3] \
+                + ar['攻勢']*(10*mdl.x['攻勢',1] + 10*mdl.x['攻勢',2] + 15*mdl.x['攻勢',3]) \
                 + 10*mdl.x['巧撃',1] + 15*mdl.x['巧撃',2] + 30*mdl.x['巧撃',3] \
-                + 5*mdl.x['フルチャージ',1] + 10*mdl.x['フルチャージ',2] + 20*mdl.x['フルチャージ',3] \
-                + 10*mdl.x['逆襲',1] + 15*mdl.x['逆襲',2] + 20*mdl.x['逆襲',3] \
-                + 5*mdl.x['死中に活',1] + 10*mdl.x['死中に活',2] + 20*mdl.x['死中に活',3] \
+                + ar['フルチャージ']*(5*mdl.x['フルチャージ',1] + 10*mdl.x['フルチャージ',2] + 20*mdl.x['フルチャージ',3]) \
+                + ar['逆襲']*(10*mdl.x['逆襲',1] + 15*mdl.x['逆襲',2] + 20*mdl.x['逆襲',3]) \
+                + ar['死中に活']*(5*mdl.x['死中に活',1] + 10*mdl.x['死中に活',2] + 20*mdl.x['死中に活',3]) \
                 + 15*cp['劫血活性'][1] + 30*cp['劫血活性'][2] \
                 + cp['ヒトダマドリ']) \
                 * cp['溜め補正物理'] \
@@ -439,7 +648,7 @@ def objective(mdl):
                 + cp['属性'][4] * (2*mdl.x['雷属性攻撃強化',1] +  3*mdl.x['雷属性攻撃強化',2] +  4*mdl.x['雷属性攻撃強化',3] + 4*mdl.x['雷属性攻撃強化',4] +  4*mdl.x['雷属性攻撃強化',5]) \
                 + cp['属性'][5] * (2*mdl.x['龍属性攻撃強化',1] +  3*mdl.x['龍属性攻撃強化',2] +  4*mdl.x['龍属性攻撃強化',3] + 4*mdl.x['龍属性攻撃強化',4] +  4*mdl.x['龍属性攻撃強化',5]) \
                 + cp['狂竜症【蝕】'][0] * (5*mdl.x['狂竜症【蝕】',1] + 7*mdl.x['狂竜症【蝕】',2] + 10*mdl.x['狂竜症【蝕】',3]) \
-                + 2*mdl.x['災禍転福',1] + 3*mdl.x['災禍転福',2] + 4*mdl.x['災禍転福',3] \
+                + ar['災禍転福']*(2*mdl.x['災禍転福',1] + 3*mdl.x['災禍転福',2] + 4*mdl.x['災禍転福',3]) \
                 + 6*mdl.x['連撃',1] + 8*mdl.x['連撃',2] + 10*mdl.x['連撃',3]) \
                 * (cp['溜め補正属性'] * cp['属性肉質'] / 100.0 \
                 * (1.0 + 0.1*mdl.x['弱点特効【属性】',1] + 0.125*mdl.x['弱点特効【属性】',2] + 0.15*mdl.x['弱点特効【属性】',3]) \
@@ -458,13 +667,13 @@ def objective_physics_only(mdl):
                 + 4*mdl.x['挑戦者',1] + 8*mdl.x['挑戦者',2] + 12*mdl.x['挑戦者',3] + 16*mdl.x['挑戦者',4] + 20*mdl.x['挑戦者',5] \
                 + 5*mdl.x['逆恨み',1] + 10*mdl.x['逆恨み',2] + 15*mdl.x['逆恨み',3] + 20*mdl.x['逆恨み',4] + 25*mdl.x['逆恨み',5] \
                 + cp['狂竜症【蝕】'][0] *(10*mdl.x['狂竜症【蝕】',1] + 15*mdl.x['狂竜症【蝕】',2] + 20*mdl.x['狂竜症【蝕】',3])\
-                + 12*mdl.x['災禍転福',1] + 15*mdl.x['災禍転福',2] + 18*mdl.x['災禍転福',3] \
+                + ar['災禍転福']*(12*mdl.x['災禍転福',1] + 15*mdl.x['災禍転福',2] + 18*mdl.x['災禍転福',3]) \
                 + 8*mdl.x['連撃',1] + 9*mdl.x['連撃',2] + 10*mdl.x['連撃',3] \
-                + 10*mdl.x['攻勢',1] + 10*mdl.x['攻勢',2] + 15*mdl.x['攻勢',3] \
+                + ar['攻勢']*(10*mdl.x['攻勢',1] + 10*mdl.x['攻勢',2] + 15*mdl.x['攻勢',3]) \
                 + 10*mdl.x['巧撃',1] + 15*mdl.x['巧撃',2] + 30*mdl.x['巧撃',3] \
-                + 5*mdl.x['フルチャージ',1] + 10*mdl.x['フルチャージ',2] + 20*mdl.x['フルチャージ',3] \
-                + 10*mdl.x['逆襲',1] + 15*mdl.x['逆襲',2] + 20*mdl.x['逆襲',3] \
-                + 5*mdl.x['死中に活',1] + 10*mdl.x['死中に活',2] + 20*mdl.x['死中に活',3] \
+                + ar['フルチャージ']*(5*mdl.x['フルチャージ',1] + 10*mdl.x['フルチャージ',2] + 20*mdl.x['フルチャージ',3]) \
+                + ar['逆襲']*(10*mdl.x['逆襲',1] + 15*mdl.x['逆襲',2] + 20*mdl.x['逆襲',3]) \
+                + ar['死中に活']*(5*mdl.x['死中に活',1] + 10*mdl.x['死中に活',2] + 20*mdl.x['死中に活',3]) \
                 + 15*cp['劫血活性'][1] + 30*cp['劫血活性'][2] \
                 + cp['ヒトダマドリ']) \
                 * cp['溜め補正物理'] \
@@ -474,7 +683,6 @@ def objective_physics_only(mdl):
                 * (1.0 + 0.05*cp['弾強化'][1] + 0.1*cp['弾強化'][2] + 0.2*cp['弾強化'][3]) \
                 * (cp['物理肉質']/100.0) * cp['ビン補正'] \
                 * (1.0 + (mdl.afr/100.0) * (1.25 + 0.05*mdl.x['超会心',1] + 0.1*mdl.x['超会心',2] + 0.15*mdl.x['超会心',3] - 1.0))
-
 
 
 print('damage test:')
