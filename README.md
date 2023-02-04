@@ -318,7 +318,20 @@ https://www.scipopt.org/download.php?fname=scipoptsuite-8.0.3.tgz
 
   # 並列最適化実行
   SCIP> concurrentopt 
+
+  # 逐次実行
+  SCIP> optimize # opt でもいける
   ```
+  - 同一問題ファイルで逐次とマルチスレッドを比較した結果
+    - 逐次: Solving Time (sec) : 650.61
+    - マルチスレッド: Solving Time (sec) : 97.15
+      ```sh
+      lp/threads = 12
+      parallel/minnthreads = 8
+      parallel/maxnthreads = 12
+      ```
+ 
+  
 
 8. 補足: 問題ファイル foo.nl の作り方
   ```py
