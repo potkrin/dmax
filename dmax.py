@@ -908,8 +908,8 @@ def test_damage_and_exit(input_dict):
 
 
 
-# mdl.OBJ = Objective(rule=objective, sense=maximize)
-mdl.OBJ = Objective(rule=objective_physics_only, sense=maximize)
+mdl.OBJ = Objective(rule=objective, sense=maximize)
+# mdl.OBJ = Objective(rule=objective_physics_only, sense=maximize)
 
 mdl.write("foo.nl")
 
@@ -920,7 +920,7 @@ mdl.write("foo.nl")
 exit(0)
 
 opt = SolverFactory("scip") # solver を scip に変更 (scipamplでは動作しなかった)
-result = opt.solve(mdl, options={'lp/threada':16, 'parallel/minthreads':8, 'parallel/maxthreads':16, }, tee=True)
+result = opt.solve(mdl, options={'lp/threads':16, 'parallel/minthreads':8, 'parallel/maxthreads':16, }, tee=True)
 # mdl.display()
 
 # 以下は全て結果の出力用

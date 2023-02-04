@@ -214,3 +214,122 @@ https://www.scipopt.org/download.php?fname=scipoptsuite-8.0.3.tgz
   ```
 
   とけたっぽい
+
+
+
+### SCIPをマルチスレッドで実行する
+1. scip の make 時に TPI=tny オプションを指定する
+  ```sh
+  # tar ファイルを展開したフォルダに移動
+  $ pwd
+  /home/hoge/wsl_work/scipoptsuite-8.0.3
+
+  # TPI=tny オプションを指定して make を実行
+  $ make TPI=tny
+
+  $ ls -l scip/bin/
+  合計 21152
+  lrwxrwxrwx 1 root root       41  2月  5 06:02 scip -> scip-8.0.3.linux.x86_64.gnu.opt.spx2.none # シンボリックリンク
+  # ~.tny がマルチスレッド非対応
+  -rwxr-xr-x 1 root root 10255552  2月  5 06:02 scip-8.0.3.linux.x86_64.gnu.opt.spx2.none
+  # ~.tny がマルチスレッド対応版
+  -rwxr-xr-x 1 hoge hoge 11402416  2月  5 05:58 scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny
+  lrwxrwxrwx 1 hoge hoge       41  2月  5 06:01 scip.linux.x86_64.gnu.opt.spx2.none -> scip-8.0.3.linux.x86_64.gnu.opt.spx2.none
+  lrwxrwxrwx 1 hoge hoge       40  2月  2 20:59 scip.linux.x86_64.gnu.opt.spx2.tny -> scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny
+  ```
+
+2. sudo make install を実行
+  ```sh
+  sudo make install INSTALLDIR="/usr/local"
+  ```
+  このとき 既に別の設定の SCIP をインストール済みの場合は マルチスレッド対応バージョンがパスに指定されない
+
+3. マルチスレッド対応版をパスに指定する
+  ```sh
+  # 古いバイナリとシンボリックリンクを削除
+  $ sudo rm /usr/local/bin/scip # none シンボリックリンク への シンボリックリンク
+  $ sudo rm /usr/local/bin/scip.linux.x86_64.gnu.opt.spx2.none # シンボリックリンク
+  $ sudo rm /usr/local/bin/scip-8.0.3.linux.x86_64.gnu.opt.spx2.none # 並列未対応のバイナリ
+
+  # make で作成した 並列対応バイナリ を /usr/local/bin にコピー
+  $ sudo cp ~/wsl_work/scipoptsuite-8.0.3/scip/bin/scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny /usr/local/bin/
+  # シンボリックリンクを作成
+  $ sudo ln -s /usr/local/bin/scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny /usr/local/bin/scip.linux.x86_64.gnu.opt.spx2.tny
+  $ sudo ln -s /usr/local/bin/scip.linux.x86_64.gnu.opt.spx2.tny /usr/local/bin/scip
+
+  # 最終状態
+  $ ls -l /usr/local/bin/
+  合計 39804
+  lrwxrwxrwx 1 root root       49  2月  5 06:31 scip -> /usr/local/bin/scip.linux.x86_64.gnu.opt.spx2.tny
+  -rwxr-xr-x 1 root root 11402416  2月  5 06:28 scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny
+  lrwxrwxrwx 1 root root       55  2月  5 06:30 scip.linux.x86_64.gnu.opt.spx2.tny -> /usr/local/bin/scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny
+  -rwxr-xr-x 1 root root  9783096  1月 29 03:30 soplex
+  -rwxr-xr-x 1 root root  9783096  1月 29 03:30 soplex-6.0.3.linux.x86_64.gnu.opt
+  -rwxr-xr-x 1 root root  9783096  1月 29 03:30 soplex.linux.x86_64.gnu.opt
+  ```
+
+4. scip 対話シェルを開いて 外部ライブラリに TinyCThread があることを確認
+  ```sh
+  $ scip
+  SCIP version 8.0.3 [precision: 8 byte] [memory: block] [mode: optimized] [LP solver: Soplex 6.0.3] [GitHash: 62fab8a2e3]
+  Copyright (C) 2002-2022 Konrad-Zuse-Zentrum fuer Informationstechnik Berlin (ZIB)
+
+  External libraries:
+    ... 略 ...
+    TinyCThread          Small, portable implementation of the C11 threads API (tinycthread.github.io) # マルチスレッド対応
+
+  user parameter file <scip.set> not found - using default parameters
+
+  SCIP>
+  ```
+
+5. scip 対話シェルでのマルチスレッド実行
+   ```sh
+   SCIP> set save setting.set # 現在のパラメータをファイル setting.set に保存
+   ```
+
+6. setting.set ファイルでパラメータ設定
+  以下のパラメータを設定
+  ```sh
+  # number of threads used for solving the LP (0: automatic)
+  # [type: int, advanced: TRUE, range: [0,64], default: 0]
+  lp/threads = 12
+
+  # the minimum number of threads used during parallel solve
+  # [type: int, advanced: FALSE, range: [0,64], default: 1]
+  parallel/minnthreads = 8
+
+  # the maximum number of threads used during parallel solve
+  # [type: int, advanced: FALSE, range: [0,64], default: 8]
+  parallel/maxnthreads = 12
+  ```
+
+7. scip 対話シェルで設定ファイルを読み込んで concurrentopt コマンドを叩く
+  ```sh
+  SCIP> set load setting.set
+  loaded parameter file <setting.set>
+
+  # 問題ファイル foo.nl の読み込み
+  SCIP> read foo.nl
+  read problem <foo.nl>
+  ============
+
+  original problem has 1993 variables (205 bin, 1787 int, 0 impl, 1 cont) and 88 constraints
+
+  # 並列最適化実行
+  SCIP> concurrentopt 
+  ```
+
+8. 補足: 問題ファイル foo.nl の作り方
+  ```py
+  # dmax.py
+  https://github.com/Pyomo/pyomo/blob/main/pyomo/repn/plugins/nl_writer.py
+  # mdl.OBJ = Objective(rule=objective, sense=maximize)
+  # モデル作成
+  mdl = ConcreteModel(name="dmax model", doc="model for solving damage optimization problem") # name doc は省略可
+  # 目的関数などの設定
+  mdl.OBJ = Objective(rule=objective_physics_only, sense=maximize)
+
+  # モデルを .nl ファイルとして出力
+  mdl.write("foo.nl")
+  ```
