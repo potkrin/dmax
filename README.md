@@ -1,12 +1,14 @@
 ### 主要なファイル説明
 | ファイル名 | 説明 |
 | ---- | ---- |
-| dmax | dmax 本体 |
+| dmax.py | dmax 本体 (非線形目的関数を制約条件に変更したバージョン) |
+| dmax_nonlinear_obj.py | dmax 本体 (目的関数が非線形なままのバージョン) |
 | dmax_skill_sim_scip.py | dmax のプロトタイプ |
 | skill-simu-scip.py | Pyomo+SCIPによるスキルシミュレータの実装 |
 | damage_expression_full.py | 完全なダメージ計算式の検証用 |
 | damage_expression.py | 簡易的なダメージ計算式の検証用 |
 | equipdata.py | 装備(防具･装飾品)のデータ |
+| *.nl | 非線形整数計画問題の出力ファイル. 対話シェルやC/C++APIでSCIPに読み込ませることができる |
 
 - equipdata.py は memo/monster-hunter/mhrs-sim-data で作成
 
@@ -323,13 +325,20 @@ https://www.scipopt.org/download.php?fname=scipoptsuite-8.0.3.tgz
   SCIP> optimize # opt でもいける
   ```
   - 同一問題ファイルで逐次とマルチスレッドを比較した結果
-    - 逐次: Solving Time (sec) : 650.61
-    - マルチスレッド: Solving Time (sec) : 97.15
-      ```sh
-      lp/threads = 12
-      parallel/minnthreads = 8
-      parallel/maxnthreads = 12
+    - スレッド数 1: Solving Time (sec) : 650.61
+    - スレッド数 2: Solving Time (sec) : 551.16
+    - スレッド数 4: Solving Time (sec) : 76.84
+    - スレッド数 6: Solving Time (sec) : 83.92
+    - スレッド数 8: Solving Time (sec) : 83.41
+    - スレッド数 8: Solving Time (sec) : 99.96
+      ``sh
+      lp/threads = 6 # スレッド数6の場合 全て6
+      parallel/minnthreads = 6
+      parallel/maxnthreads = 6
       ```
+
+
+
  
   
 
@@ -344,5 +353,87 @@ https://www.scipopt.org/download.php?fname=scipoptsuite-8.0.3.tgz
   mdl.OBJ = Objective(rule=objective_physics_only, sense=maximize)
 
   # モデルを .nl ファイルとして出力
-  mdl.write("foo.nl")
+  # io_options は 変数情報を .nl ファイルに出力するために必要
+  # この変数情報がないと 対話型シェル や C/C++API から scip で解いた結果を表示するときに結果を読み解けなくて詰む
+  # (スキルA:7 などではなく c10:7 などと表示されてしまうため結果が分からない)
+  mdl.write("dmax_sample_p.nl", io_options={'symbolic_solver_labels': True})
   ```
+
+
+
+### C/C++ API から .nl ファイルを読み込む方法
+- application sample: Coloring : /home/hoge/wsl_work/scipoptsuite-8.0.3/scip/applications/Coloring/src/main.c
+  ```c
+  SCIP_CALL( SCIPprocessShellArguments(scip, argc, argv, defaultsetname) );
+  ```
+- SCIPソルバに .nl ファイルの問題を読み込ませている箇所
+  - /home/hoge/wsl_work/scipoptsuite-8.0.3/scip/src/scip/scipshell.c
+    ```c
+    /* AMPL calls solver with file without .nl extension, but others (Pyomo) may not
+    * so add .nl only if not already present
+    */
+    nlfilenamelen = strlen(nlfilename);
+    if( nlfilenamelen > 3 && strcmp(nlfilename + (nlfilenamelen-3), ".nl") == 0 )
+      (void) SCIPsnprintf(fullnlfilename, SCIP_MAXSTRLEN, "%s", nlfilename);
+    else
+      (void) SCIPsnprintf(fullnlfilename, SCIP_MAXSTRLEN, "%s.nl", nlfilename);
+    SCIPinfoMessage(scip, NULL, "read problem <%s>\n", fullnlfilename);
+    SCIPinfoMessage(scip, NULL, "============\n\n");
+
+    SCIP_CALL( SCIPreadProb(scip, fullnlfilename, "nl") );
+
+    SCIPinfoMessage(scip, NULL, "\nsolve problem\n");
+    SCIPinfoMessage(scip, NULL, "=============\n\n");
+
+    SCIP_CALL( SCIPsolve(scip) );
+  ```
+
+- SCIPを静的リンクして C/C++ コードから .nl ファイルを読み込んでソルバに解かせることができた
+  1. 次のコードに 上記スニペットを挿入 
+    - ソースコード: scipoptsuite-8.0.3/scip/examples/CallableLibrary/src/brachistochrone.c
+  2. make コマンドを実行
+    ```sh
+    $ pwd
+    /home/hoge/wsl_work/scipoptsuite-8.0.3/scip/examples/CallableLibrary
+
+    # example の make の前に SCIP の make が完了している必要がある
+    $ ls -l /home/hoge/wsl_work/scipoptsuite-8.0.3/scip/bin/
+    合計 22256
+    lrwxrwxrwx 1 hoge hoge       41  2月  6 23:46 scip -> scip-8.0.3.linux.x86_64.gnu.opt.spx2.none
+    -rwxr-xr-x 1 hoge hoge 11383240  2月  6 23:46 scip-8.0.3.linux.x86_64.gnu.opt.spx2.none
+    -rwxr-xr-x 1 hoge hoge 11402416  2月  6 22:29 scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny
+    lrwxrwxrwx 1 hoge hoge       41  2月  5 06:01 scip.linux.x86_64.gnu.opt.spx2.none -> scip-8.0.3.linux.x86_64.gnu.opt.spx2.none
+    lrwxrwxrwx 1 hoge hoge       40  2月  2 20:59 scip.linux.x86_64.gnu.opt.spx2.tny -> scip-8.0.3.linux.x86_64.gnu.opt.spx2.tny
+
+    # example の make
+    $ make
+    $ ls -l bin/
+    lrwxrwxrwx 1 hoge hoge       41  2月  6 23:47 brachistochrone -> brachistochrone.linux.x86_64.gnu.opt.spx2
+    -rwxr-xr-x 1 hoge hoge 11379000  2月  7 00:05 brachistochrone.linux.x86_64.gnu.opt.spx2
+
+    $ bin/brachistochrone
+    ```
+
+  - SCIPsolve(scip) で動作することを確認した
+  - ldd で動的リンクされているライブラリを確認
+    ```sh
+    $ ldd bin/brachistochrone
+        linux-vdso.so.1 (0x00007ffed81d8000)
+        libz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x00007f4c1b332000)
+        libgmp.so.10 => /lib/x86_64-linux-gnu/libgmp.so.10 (0x00007f4c1b2ae000)
+        libreadline.so.8 => /lib/x86_64-linux-gnu/libreadline.so.8 (0x00007f4c1b25e000)
+        libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f4c1b10f000)
+        libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f4c1af2d000)
+        libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007f4c1af12000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f4c1ad1e000)
+        libtinfo.so.6 => /lib/x86_64-linux-gnu/libtinfo.so.6 (0x00007f4c1acee000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007f4c1c181000)
+    ```
+    SCIPまわりはなさそう
+ 
+### .nl ファイルへの 変数情報の付与(スキル名や防具名など)
+- symbolic_solver_labels オプションを有効化して nlファイルを出力し, そのnlファイルを scip solver に解かせれば 対話型シェルの ```display solution``` コマンドや C/C++ API の ```SCIP_CALL( SCIPprintSol(scip, SCIPgetBestSol(scip), NULL, FALSE) );``` などでスキル名等の情報込みの変数を見ることができる
+  ```py
+  mdl.write("dmax_sample_p.nl", io_options={'symbolic_solver_labels': True})
+  ```
+

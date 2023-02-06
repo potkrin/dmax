@@ -470,7 +470,7 @@ lp/rowrepswitch = 1.2
 
 # number of threads used for solving the LP (0: automatic)
 # [type: int, advanced: TRUE, range: [0,64], default: 0]
-lp/threads = 12
+lp/threads = 7
 
 # factor of average LP iterations that is used as LP iteration limit for LP resolve (-1: unlimited)
 # [type: real, advanced: TRUE, range: [-1,1.79769313486232e+308], default: -1]
@@ -974,11 +974,11 @@ parallel/mode = 1
 
 # the minimum number of threads used during parallel solve
 # [type: int, advanced: FALSE, range: [0,64], default: 1]
-parallel/minnthreads = 8
+parallel/minnthreads = 7
 
 # the maximum number of threads used during parallel solve
 # [type: int, advanced: FALSE, range: [0,64], default: 8]
-parallel/maxnthreads = 12
+parallel/maxnthreads = 7
 
 # set different random seeds in each concurrent solver?
 # [type: bool, advanced: FALSE, range: {TRUE,FALSE}, default: TRUE]
